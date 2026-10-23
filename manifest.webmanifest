@@ -1,0 +1,18 @@
+{
+  "id": "./",
+  "name": "금자란 조사야장",
+  "short_name": "금자란야장",
+  "description": "멸종위기 야생생물 금자란 현장 조사 야장",
+  "lang": "ko",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#e8f5e9",
+  "theme_color": "#2e7d32",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

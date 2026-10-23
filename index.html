@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2e7d32">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="금자란야장">
+<title>금자란 조사야장</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
+<style>
+:root{--g:#2e7d32;--g2:#1b5e20;--gl:#e8f5e9;--bd:#cfd8dc;--tx:#1d2a22;--mut:#607d8b;--warn:#e65100}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:#f3f6f4;color:var(--tx);font-family:'Noto Sans KR','Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;font-size:16px;line-height:1.5}
+header{position:sticky;top:0;z-index:20;background:var(--g);color:#fff;padding:calc(10px + env(safe-area-inset-top)) 14px 10px;display:flex;align-items:center;gap:10px}
+header h1{font-size:18px;margin:0;flex:1}
+header small{display:block;font-weight:400;font-size:11px;opacity:.85}
+button{font:inherit;cursor:pointer}
+.btn{border:0;border-radius:10px;padding:12px 16px;background:var(--g);color:#fff;font-weight:700}
+.btn.sec{background:#fff;color:var(--g);border:2px solid var(--g)}
+.btn.gray{background:#eceff1;color:#37474f}
+.btn.big{width:100%;padding:15px;font-size:17px}
+.btn:disabled{opacity:.55}
+#installBtn{background:#fff;color:var(--g2);padding:8px 12px;font-size:14px}
+main{padding:12px 12px 110px;max-width:760px;margin:0 auto}
+section{background:#fff;border:1px solid var(--bd);border-radius:14px;padding:14px;margin-bottom:14px}
+section h2{margin:0 0 10px;font-size:17px;color:var(--g2);border-bottom:2px solid var(--gl);padding-bottom:6px}
+label.f{display:block;font-size:13px;color:var(--mut);margin:10px 0 3px}
+input[type=text],input[type=number],input[type=date],input[type=time],textarea{width:100%;font:inherit;padding:11px;border:1.5px solid var(--bd);border-radius:9px;background:#fff;color:var(--tx)}
+input:focus,textarea:focus{outline:none;border-color:var(--g)}
+textarea{min-height:130px;resize:vertical}
+.row{display:flex;gap:10px}.row>*{flex:1;min-width:0}
+#map{height:260px;border-radius:12px;margin-top:12px;border:1px solid var(--bd);z-index:1}
+.nomap{padding:20px;color:var(--mut);text-align:center}
+.status{font-size:13px;color:var(--mut);margin-top:8px;min-height:20px;white-space:pre-line}
+.dms{font-size:13px;color:var(--g2);margin-top:4px;word-break:break-all}
+.opts{display:flex;flex-direction:column;gap:8px}
+.opts.inline{flex-direction:row;flex-wrap:wrap}
+label.opt{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1.5px solid var(--bd);border-radius:10px;background:#fff}
+label.opt input{width:22px;height:22px;margin:2px 0 0;accent-color:var(--g);flex:none}
+label.opt small{display:block;color:var(--mut);font-size:12.5px;line-height:1.4;margin-top:2px}
+label.opt:has(input:checked){border-color:var(--g);background:var(--gl)}
+.sub{font-weight:700;margin:14px 0 6px}
+.hint{font-size:12.5px;color:var(--mut)}
+.pgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:12px}
+.pcell{border:1.5px dashed var(--bd);border-radius:10px;padding:6px;text-align:center;font-size:13px}
+.pcell img{width:100%;height:110px;object-fit:cover;border-radius:7px;display:block;margin-bottom:4px}
+.pcell .ph{height:110px;display:flex;align-items:center;justify-content:center;color:#b0bec5;background:#fafafa;border-radius:7px;margin-bottom:4px}
+.pcell button{margin-top:4px;padding:6px 8px;font-size:12px;border-radius:8px;border:1px solid var(--g);background:#fff;color:var(--g)}
+.bar{position:fixed;left:0;right:0;bottom:0;z-index:30;display:flex;gap:10px;padding:10px 12px calc(10px + env(safe-area-inset-bottom));background:#fff;border-top:1px solid var(--bd)}
+.bar .btn{flex:1}
+.thumb{width:100%;max-height:150px;object-fit:cover;border-radius:8px;margin-top:8px;display:block}
+/* wizard */
+#wiz{position:fixed;inset:0;z-index:100;background:#102a14;color:#fff;display:none;flex-direction:column}
+#wiz.on{display:flex}
+#wiz::after{content:"";position:absolute;inset:0;background:#00e676;opacity:0;pointer-events:none;z-index:5}
+#wiz.flash::after{animation:blink .6s steps(1) infinite}
+@keyframes blink{0%{opacity:.75}50%{opacity:0}100%{opacity:.75}}
+#wizHead{padding:calc(10px + env(safe-area-inset-top)) 14px 10px;display:flex;align-items:center;gap:10px;background:rgba(0,0,0,.25);position:relative;z-index:6}
+#wizHead b{flex:1;font-size:16px}
+#wizHead button{background:transparent;color:#fff;border:0;font-size:26px;line-height:1}
+#wizBody{flex:1;overflow:auto;padding:16px;text-align:center;position:relative;z-index:6}
+#wizFoot{display:flex;gap:10px;justify-content:space-between;padding:12px 14px calc(14px + env(safe-area-inset-bottom));background:rgba(0,0,0,.25);position:relative;z-index:6}
+#wizFoot .l,#wizFoot .r{display:flex;gap:10px}
+#wizFoot .btn{background:#fff;color:var(--g2);min-width:110px}
+#wizFoot .btn.main{background:#69f0ae;color:#003d12;min-width:130px;font-size:17px}
+.guide{font-size:19px;line-height:1.6;margin:22px 4px;font-weight:600}
+.guide.sm{font-size:16px;font-weight:500}
+.dialwrap{position:relative;width:230px;height:230px;margin:10px auto}
+.pointer{position:absolute;left:50%;top:-12px;transform:translateX(-50%);border-left:12px solid transparent;border-right:12px solid transparent;border-bottom:20px solid #ffeb3b;z-index:2}
+.dial{width:100%;height:100%;border-radius:50%;border:4px solid #fff;background:radial-gradient(circle,#1c4a22,#0b2410);position:relative;transition:transform .08s linear}
+.dial span{position:absolute;font-weight:800;font-size:22px}
+.dial .n{top:6px;left:50%;transform:translateX(-50%);color:#ff5252}
+.dial .e{right:10px;top:50%;transform:translateY(-50%)}
+.dial .s{bottom:6px;left:50%;transform:translateX(-50%)}
+.dial .w{left:10px;top:50%;transform:translateY(-50%)}
+.readout{font-size:26px;font-weight:800;margin:6px 0}
+.sub2{font-size:14px;opacity:.9;min-height:22px}
+.count{font-size:92px;font-weight:900;line-height:1;margin:8px 0;text-shadow:0 2px 10px #000}
+video{width:100%;max-height:44vh;background:#000;border-radius:12px;object-fit:cover}
+.prev{max-width:100%;max-height:48vh;border-radius:12px;margin:8px 0}
+.seg{display:flex;gap:8px;justify-content:center;margin:10px 0;font-size:15px}
+.seg label{padding:8px 14px;border:1.5px solid #fff8;border-radius:20px}
+.seg label:has(input:checked){background:#fff;color:var(--g2)}
+.seg input{display:none}
+.dcards{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:10px}
+.dc{background:rgba(255,255,255,.1);border:2px solid transparent;border-radius:12px;padding:8px}
+.dc.now{border-color:#69f0ae;background:rgba(105,240,174,.22)}
+.dc h4{margin:0 0 6px;font-size:17px}
+.dc img{width:100%;height:80px;object-fit:cover;border-radius:8px;margin-bottom:6px}
+.dc .btn{width:100%;padding:9px;background:#fff;color:var(--g2)}
+.dc label{display:flex;gap:6px;align-items:center;justify-content:center;font-size:13px;margin-top:6px}
+.dc input{width:18px;height:18px;accent-color:#69f0ae}
+/* sheet for pdf */
+#sheet{position:fixed;left:-10000px;top:0;width:714px;background:#fff;color:#000;font:12px/1.5 'Noto Sans KR','Apple SD Gothic Neo','Malgun Gothic',sans-serif}
+#sheet table{width:100%;border-collapse:collapse;table-layout:fixed}
+#sheet td{border:1px solid #000;padding:4px 6px;vertical-align:middle;word-break:break-all}
+#sheet td.l{background:#f5f5f5;text-align:center;font-weight:600;width:16.6%}
+#sheet td.sec{background:#e0e0e0;font-weight:800;font-size:13px}
+#sheet td.t{text-align:center;font-weight:800;font-size:16px;padding:9px}
+#sheet img{max-width:100%;max-height:210px;display:block;margin:2px auto}
+#sheet .d{font-size:10.5px;color:#222;line-height:1.45}
+#sheet .vp{display:inline-block;width:24%;vertical-align:top;text-align:center;font-size:11px}
+#sheet .vp img{max-height:130px}
+#sheet .ph{color:#999}
+#busy{position:fixed;inset:0;background:#0009;color:#fff;z-index:200;display:none;align-items:center;justify-content:center;font-size:18px}
+#busy.on{display:flex}
+#toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#263238;color:#fff;padding:10px 16px;border-radius:20px;font-size:14px;z-index:300;display:none;max-width:90%;text-align:center}
+@media print{body>*:not(#sheet){display:none!important}#sheet{position:static;width:auto}}
+</style>
+</head>
+<body>
+<header>
+  <h1>🌿 금자란 조사야장<small>멸종위기 야생생물 · 착생난초</small></h1>
+  <button id="installBtn" class="btn" type="button">📲 설치</button>
+</header>
+
+<main>
+  <!-- 1. 기본정보 -->
+  <section id="s1">
+    <h2>1. 기본정보</h2>
+    <label class="f" for="obs">관찰자 성명 (한 번 입력하면 자동 저장)</label>
+    <input type="text" id="obs" autocomplete="name" placeholder="이름 입력">
+    <label class="f" for="treeNo">나무 번호</label>
+    <input type="text" id="treeNo" data-k="treeNo" placeholder="예: 12 또는 A-03">
+    <div style="margin-top:14px">
+      <button class="btn big" id="gpsBtn" type="button">📍 현재 위치·일시·기온·습도 자동 입력</button>
+      <div class="status" id="gpsStatus"></div>
+    </div>
+    <div class="row">
+      <div><label class="f" for="date">관찰일자</label><input type="date" id="date" data-k="date"></div>
+      <div><label class="f" for="time">관찰시각</label><input type="time" id="time" data-k="time"></div>
+    </div>
+    <label class="f" for="addr">관찰장소 (행정지명)</label>
+    <input type="text" id="addr" data-k="addr" placeholder="자동 입력 후 수정 가능">
+    <div class="row">
+      <div><label class="f" for="lat">위도 (N, 십진도)</label><input type="text" inputmode="decimal" id="lat" data-k="lat"></div>
+      <div><label class="f" for="lng">경도 (E, 십진도)</label><input type="text" inputmode="decimal" id="lng" data-k="lng"></div>
+    </div>
+    <div class="dms" id="dms"></div>
+    <div id="map"></div>
+    <div class="hint" style="margin-top:6px">지도의 마커를 길게 눌러 끌면 좌표를 수정할 수 있습니다.</div>
+  </section>
+
+  <!-- 2. 환경정보 -->
+  <section id="s2">
+    <h2>2. 환경정보</h2>
+    <div class="row">
+      <div><label class="f" for="temp">기온 (℃)</label><input type="text" inputmode="decimal" id="temp" data-k="temp"></div>
+      <div><label class="f" for="hum">습도 (%)</label><input type="text" inputmode="decimal" id="hum" data-k="hum"></div>
+    </div>
+    <div style="margin-top:14px">
+      <button class="btn big" id="wizBtn" type="button">📷 사진 촬영 안내 시작<br><small style="font-weight:400">수관개방도 → 부착수목 → 부착방위 → 주변식생</small></button>
+    </div>
+    <div class="sub">부착방위 (금자란이 부착된 방향)</div>
+    <div class="opts inline" id="attachChk"></div>
+    <div class="pgrid" id="photoGrid"></div>
+  </section>
+
+  <!-- 3. 생육정보 -->
+  <section id="s3">
+    <h2>3. 생육정보</h2>
+    <div class="sub" style="margin-top:0">생육건전도</div>
+    <div class="opts" id="vigor"></div>
+    <div class="sub">부착위치 (대분류)</div>
+    <div class="opts inline" id="locMajor"></div>
+    <div class="sub">부착위치 (중분류)</div>
+    <div class="opts inline" id="locMinor"></div>
+  </section>
+
+  <!-- 4. 번식정보 -->
+  <section id="s4">
+    <h2>4. 번식정보</h2>
+    <div class="sub" style="margin-top:0">개화상태 (flowering)</div>
+    <div class="opts" id="flower"></div>
+    <div class="sub">착과상태 (fruiting)</div>
+    <div class="opts inline" id="fruit"></div>
+    <div class="sub">수분매개자</div>
+    <div class="opts inline" id="poll"></div>
+    <div id="pollPhoto"></div>
+    <div class="sub">종자산포자</div>
+    <div class="opts inline" id="disp"></div>
+    <div id="dispPhoto"></div>
+  </section>
+
+  <!-- 5. 반응정보 -->
+  <section id="s5">
+    <h2>5. 반응정보</h2>
+    <div class="sub" style="margin-top:0">대상 종 인식 수준</div>
+    <div class="opts" id="aware"></div>
+    <div class="sub">관찰소감 또는 특이관찰 사항</div>
+    <textarea id="notes" data-k="notes" placeholder="자유롭게 느낀 점, 관찰하면서 특이했던 점들을 기술해 주세요"></textarea>
+  </section>
+</main>
+
+<div class="bar">
+  <button class="btn gray" id="newBtn" type="button">🗑 새 야장</button>
+  <button class="btn" id="pdfBtn" type="button">📄 PDF로 저장</button>
+</div>
+
+<!-- 촬영 안내 마법사 -->
+<div id="wiz">
+  <div id="wizHead"><b id="wizTitle"></b><button type="button" id="wizClose" aria-label="닫기">×</button></div>
+  <div id="wizBody"></div>
+  <div id="wizFoot"></div>
+</div>
+
+<div id="sheet"></div>
+<div id="busy">PDF 생성 중…</div>
+<div id="toast"></div>
+
+<script>
+'use strict';
+/* ================= 기본 유틸 ================= */
+const $ = s => document.querySelector(s);
+const DIRS = [['N','북',0],['E','동',90],['S','남',180],['W','서',270]];
+const DIRNAME = {N:'북',E:'동',S:'남',W:'서'};
+const pad = n => String(n).padStart(2,'0');
+const esc = s => String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function toast(msg,ms=2800){const t=$('#toast');t.textContent=msg;t.style.display='block';clearTimeout(toast._t);toast._t=setTimeout(()=>t.style.display='none',ms);}
+const sleep = ms => new Promise(r=>setTimeout(r,ms));
+
+/* ================= 상태 / 저장 ================= */
+const DRAFT_KEY='gjr_draft_v1', OBS_KEY='gjr_observer_v1';
+function defaultState(){return {treeNo:'',date:'',time:'',addr:'',lat:'',lng:'',acc:'',temp:'',hum:'',
+  attach:{N:false,E:false,S:false,W:false},vigor:'',locMajor:'',locMinor:'',flower:'',fruit:'',
+  poll:[],disp:[],aware:'',notes:'',meta:{}};}
+let S = defaultState();
+let PH = {};              // 사진 dataURL
+function save(){try{localStorage.setItem(DRAFT_KEY,JSON.stringify(S));}catch(e){}}
+function loadDraft(){try{const d=JSON.parse(localStorage.getItem(DRAFT_KEY)||'null');if(d)S=Object.assign(defaultState(),d,{attach:Object.assign({N:false,E:false,S:false,W:false},d.attach||{})});}catch(e){}}
+
+/* IndexedDB (사진 보관) */
+const idb = new Promise((res,rej)=>{
+  if(!window.indexedDB){rej();return;}
+  const r=indexedDB.open('gjr',1);
+  r.onupgradeneeded=()=>r.result.createObjectStore('p');
+  r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error);
+});
+idb.catch(()=>{});
+async function idbSet(k,v){try{const d=await idb;d.transaction('p','readwrite').objectStore('p').put(v,k);}catch(e){}}
+async function idbAll(){try{const d=await idb;return await new Promise(res=>{const o={};const c=d.transaction('p').objectStore('p').openCursor();c.onsuccess=()=>{const cur=c.result;if(cur){o[cur.key]=cur.value;cur.continue();}else res(o);};c.onerror=()=>res(o);});}catch(e){return {};}}
+async function idbClear(){try{const d=await idb;d.transaction('p','readwrite').objectStore('p').clear();}catch(e){}}
+function setPhoto(k,v){PH[k]=v;idbSet(k,v);}
+
+/* ================= 사진 유틸 ================= */
+async function fileToDataURL(file,max=1800,q=.85){
+  let bmp;
+  try{bmp=await createImageBitmap(file,{imageOrientation:'from-image'});}
+  catch(e){bmp=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=URL.createObjectURL(file);});}
+  const w=bmp.width||bmp.naturalWidth,h=bmp.height||bmp.naturalHeight,k=Math.min(1,max/Math.max(w,h));
+  const c=document.createElement('canvas');c.width=Math.round(w*k);c.height=Math.round(h*k);
+  c.getContext('2d').drawImage(bmp,0,0,c.width,c.height);
+  return c.toDataURL('image/jpeg',q);
+}
+/* 휴대폰 기본 카메라 앱을 열어 촬영 (배율 1배 기본) */
+function pickPhoto(){
+  return new Promise(res=>{
+    const i=document.createElement('input');
+    i.type='file';i.accept='image/*';i.setAttribute('capture','environment');i.style.display='none';
+    document.body.appendChild(i);
+    let done=false;
+    i.onchange=async()=>{if(done)return;done=true;const f=i.files&&i.files[0];i.remove();
+      if(!f){res(null);return;}
+      try{res(await fileToDataURL(f));}catch(e){toast('사진을 처리하지 못했습니다');res(null);}};
+    i.addEventListener('cancel',()=>{if(done)return;done=true;i.remove();res(null);});
+    i.click();
+  });
+}
+
+/* ================= 좌표 / 지도 ================= */
+function dms(v,pos,neg){const h=v>=0?pos:neg;const a=Math.abs(v);const d=Math.floor(a);const mm=(a-d)*60;const m=Math.floor(mm);const s=(mm-m)*60;return `${d}° ${m}′ ${s.toFixed(1)}″ ${h}`;}
+function dmsText(){const la=parseFloat(S.lat),ln=parseFloat(S.lng);if(isNaN(la)||isNaN(ln))return '';return `(${dms(la,'N','S')}), (${dms(ln,'E','W')})`;}
+function updateDms(){$('#dms').textContent=dmsText();}
+let map,marker,circle;
+function initMap(){
+  if(typeof L==='undefined'){$('#map').innerHTML='<div class="nomap">지도를 불러오지 못했습니다.<br>(최초 1회 인터넷 연결 필요)</div>';return;}
+  map=L.map('map').setView([36.5,127.8],7);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(map);
+  if(S.lat&&S.lng) showOnMap(parseFloat(S.lat),parseFloat(S.lng),parseFloat(S.acc));
+}
+function showOnMap(lat,lng,acc){
+  if(!map||isNaN(lat)||isNaN(lng))return;
+  const ll=[lat,lng];
+  if(!marker){marker=L.marker(ll,{draggable:true}).addTo(map);
+    marker.on('dragend',()=>{const p=marker.getLatLng();S.lat=p.lat.toFixed(6);S.lng=p.lng.toFixed(6);$('#lat').value=S.lat;$('#lng').value=S.lng;updateDms();save();});}
+  else marker.setLatLng(ll);
+  if(acc&&!isNaN(acc)){if(!circle)circle=L.circle(ll,{radius:acc,color:'#2e7d32',weight:1,fillOpacity:.12}).addTo(map);else{circle.setLatLng(ll);circle.setRadius(acc);}}
+  map.setView(ll,Math.max(map.getZoom(),17));
+  setTimeout(()=>map.invalidateSize(),50);
+}
+async function reverseGeo(lat,lng){
+  const r=await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1&accept-language=ko`);
+  if(!r.ok)throw new Error('geo');
+  const j=await r.json();const a=j.address||{};
+  const parts=[a.province||a.state,a.city||a.county,a.city_district||a.borough,a.suburb||a.town||a.village||a.quarter||a.neighbourhood||a.hamlet||a.road];
+  const out=[];parts.forEach(p=>{if(p&&out[out.length-1]!==p)out.push(p);});
+  return out.length?out.join(' '):(j.display_name||'');
+}
+async function getWeather(lat,lng){
+  const r=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m&timezone=auto`);
+  if(!r.ok)throw new Error('wx');
+  const c=(await r.json()).current;return {t:c.temperature_2m,h:c.relative_humidity_2m};
+}
+async function autoFill(){
+  const btn=$('#gpsBtn'),st=$('#gpsStatus');
+  if(!navigator.geolocation){st.textContent='이 기기는 위치 기능을 지원하지 않습니다.';return;}
+  btn.disabled=true;st.textContent='📡 GPS 위치 확인 중… (휴대폰 위치 기능을 켜 주세요)';
+  let pos;
+  try{pos=await new Promise((res,rej)=>navigator.geolocation.getCurrentPosition(res,rej,{enableHighAccuracy:true,timeout:25000,maximumAge:0}));}
+  catch(e){btn.disabled=false;st.textContent='위치를 가져오지 못했습니다: '+(e.code===1?'위치 권한이 거부되었습니다. 브라우저 설정에서 허용해 주세요.':e.code===3?'시간 초과. 하늘이 트인 곳에서 다시 시도해 주세요.':'위치를 확인할 수 없습니다.');return;}
+  const now=new Date();
+  S.date=`${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
+  S.time=`${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  const lat=pos.coords.latitude,lng=pos.coords.longitude;
+  S.lat=lat.toFixed(6);S.lng=lng.toFixed(6);S.acc=String(Math.round(pos.coords.accuracy||0));
+  applyInputs();showOnMap(lat,lng,pos.coords.accuracy);save();
+  st.textContent=`✅ 일시·좌표 입력 완료 (정확도 약 ${S.acc}m)\n주소와 기온·습도 조회 중…`;
+  const [g,w]=await Promise.allSettled([reverseGeo(lat,lng),getWeather(lat,lng)]);
+  const msg=[`✅ 일시·좌표 입력 완료 (정확도 약 ${S.acc}m)`];
+  if(g.status==='fulfilled'&&g.value){S.addr=g.value;msg.push('✅ 행정지명 입력 완료');}else msg.push('⚠ 행정지명 조회 실패 — 직접 입력해 주세요');
+  if(w.status==='fulfilled'){S.temp=String(w.value.t);S.hum=String(w.value.h);msg.push('✅ 기온·습도 입력 완료 (인근 기상 예보 모델 값)');}else msg.push('⚠ 기온·습도 조회 실패 — 직접 입력해 주세요');
+  applyInputs();save();st.textContent=msg.join('\n');btn.disabled=false;
+}
+
+/* ================= 선택 항목 설정 ================= */
+const VIGOR=[
+ ['매우좋음','살아있으며 뿌리색은 흰색 또는 녹색이고 신생 뿌리가 발생했으며 잎은 녹색인 상태'],
+ ['좋음','살아있으며 뿌리색은 흰색 또는 녹색이고 잎은 녹색인 상태'],
+ ['보통','살아있으며 뿌리색은 흰색 또는 녹색이나 잎은 약간 쪼그라든 형태'],
+ ['나쁨','살아있으며 뿌리색은 흰색 또는 갈색 단색이거나 서로 섞여있으며 잎은 완전히 쪼그라든 형태 또는 아예 말라 없어짐'],
+ ['고사','뿌리색은 갈색 또는 아예 보이지 않고 잎도 완전히 쪼그라든 형태이거나 말라 없어진 상태']];
+const FLOWER=[
+ ['개화전기','꽃눈만 보이는 상태'],
+ ['개화초기','신장형의 순판이 완전히 벌어지지 않았지만 어느 정도 꽃의 각 부위가 윤곽을 드러낸 상태'],
+ ['개화중기','신장형의 순판이 완전히 벌어져 있는 상태'],
+ ['개화후기 또는 낙화','개화후기: 꽃이 노화하여 갈라지거나 색이 변한 상태']];
+const MAJOR=[['수간부'],['가지']];
+const MINOR={'수간부':['상부','중부','하부'],'가지':['위','아래','옆(좌, 우)']};
+const FRUIT=[['유'],['무']];
+const POLL=[['벌류'],['파리류'],['나비류']];
+const DISP=[['조류'],['포유류'],['곤충류']];
+const AWARE=[['전혀 몰랐음'],['매체 등을 통해 듣거나 본 적이 있음'],['상당히 잘 알고 있음']];
+
+function radios(id,items,key,desc,onchg){
+  const el=$('#'+id);
+  el.innerHTML=items.map(([v,d])=>`<label class="opt"><input type="radio" name="${id}" value="${esc(v)}"><span><b>${esc(v)}</b>${desc&&d?`<small>${esc(d)}</small>`:''}</span></label>`).join('');
+  el.querySelectorAll('input').forEach(i=>{i.checked=(S[key]===i.value);i.onchange=()=>{S[key]=i.value;save();onchg&&onchg();};});
+}
+function checks(id,items,key){
+  const el=$('#'+id);
+  el.innerHTML=items.map(([v])=>`<label class="opt"><input type="checkbox" value="${esc(v)}"><span><b>${esc(v)}</b></span></label>`).join('');
+  el.querySelectorAll('input').forEach(i=>{i.checked=S[key].includes(i.value);i.onchange=()=>{S[key]=[...el.querySelectorAll('input:checked')].map(x=>x.value);save();};});
+}
+function renderMinor(){
+  const el=$('#locMinor');const list=MINOR[S.locMajor];
+  if(!list){el.innerHTML='<span class="hint">대분류를 먼저 선택해 주세요.</span>';return;}
+  radios('locMinor',list.map(x=>[x]),'locMinor',false);
+}
+function renderChoices(){
+  radios('vigor',VIGOR,'vigor',true);
+  radios('locMajor',MAJOR,'locMajor',false,()=>{S.locMinor='';save();renderMinor();});
+  renderMinor();
+  radios('flower',FLOWER,'flower',true);
+  radios('fruit',FRUIT,'fruit',false);
+  checks('poll',POLL,'poll');
+  checks('disp',DISP,'disp');
+  radios('aware',AWARE,'aware',false);
+  // 부착방위 체크
+  const el=$('#attachChk');
+  el.innerHTML=DIRS.map(([k,l])=>`<label class="opt"><input type="checkbox" data-d="${k}"><span><b>${l}</b></span></label>`).join('');
+  el.querySelectorAll('input').forEach(i=>{i.checked=!!S.attach[i.dataset.d];i.onchange=()=>{S.attach[i.dataset.d]=i.checked;save();};});
+  renderExtraPhotos();
+}
+function renderExtraPhotos(){
+  [['pollPhoto','poll','수분매개자'],['dispPhoto','disp','종자산포자']].forEach(([id,k,l])=>{
+    const el=$('#'+id);
+    el.innerHTML=`<button class="btn sec" type="button" style="margin-top:8px">📷 ${l} 사진 ${PH[k]?'다시 촬영':'첨부'}</button>${PH[k]?`<img class="thumb" src="${PH[k]}" alt="${l}">`:''}`;
+    el.querySelector('button').onclick=async()=>{const p=await pickPhoto();if(p){setPhoto(k,p);renderExtraPhotos();}};
+  });
+}
+function renderPhotos(){
+  const cells=[['canopy','수관개방도'],['bark','부착수목(수피)']];
+  DIRS.forEach(([k,l])=>cells.push(['attach_'+k,`부착방위 ${l}`]));
+  DIRS.forEach(([k,l])=>cells.push(['veg_'+k,`주변식생 ${l}`]));
+  const stepOf=k=>k==='canopy'?'canopyGuide':k==='bark'?'bark':k.startsWith('attach')?'attach':'veg';
+  $('#photoGrid').innerHTML=cells.map(([k,l])=>`<div class="pcell">${PH[k]?`<img src="${PH[k]}" alt="">`:'<div class="ph">(사진)</div>'}<div>${l}</div><button type="button" data-s="${stepOf(k)}">${PH[k]?'다시 촬영':'촬영'}</button></div>`).join('');
+  $('#photoGrid').querySelectorAll('button').forEach(b=>b.onclick=()=>openWiz(b.dataset.s));
+  $('#attachChk').querySelectorAll('input').forEach(i=>i.checked=!!S.attach[i.dataset.d]);
+}
+function applyInputs(){
+  document.querySelectorAll('[data-k]').forEach(i=>{if(document.activeElement!==i)i.value=S[i.dataset.k]||'';});
+  updateDms();
+}
+
+/* ================= 나침반 ================= */
+const Compass={heading:null,active:false,sx:0,sy:0,subs:new Set(),got:false,
+  async start(){
+    if(this.active)return true;
+    try{
+      if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'){
+        const r=await DeviceOrientationEvent.requestPermission();if(r!=='granted')return false;}
+    }catch(e){return false;}
+    const h=e=>this.onEvt(e);
+    window.addEventListener('deviceorientationabsolute',h,true);
+    window.addEventListener('deviceorientation',h,true);
+    this.active=true;return true;
+  },
+  onEvt(e){
+    let hd=null;
+    if(typeof e.webkitCompassHeading==='number'&&!isNaN(e.webkitCompassHeading)) hd=e.webkitCompassHeading;
+    else if((e.type==='deviceorientationabsolute'||e.absolute===true)&&e.alpha!=null){
+      const r=Math.PI/180,a=e.alpha*r,b=(e.beta||0)*r,g=(e.gamma||0)*r;
+      const cA=Math.cos(a),sA=Math.sin(a),cB=Math.cos(b),sB=Math.sin(b),cG=Math.cos(g),sG=Math.sin(g);
+      const yx=-cB*sA,yy=cA*cB,yz=sB;                       // 기기 윗변 방향
+      const zx=cG*sA*sB+cA*sG,zy=sA*sG-cA*cG*sB;            // 기기 z축(화면 법선)
+      if(Math.abs(yz)<0.7) hd=Math.atan2(yx,yy)/r;          // 눕혀 둔 경우: 윗변 기준
+      else hd=Math.atan2(-zx,-zy)/r;                        // 세워 든 경우: 후면 카메라 방향
+    }
+    if(hd==null)return;
+    hd=((hd%360)+360)%360;
+    const rr=hd*Math.PI/180;
+    this.sx=this.got?this.sx*.8+Math.sin(rr)*.2:Math.sin(rr);
+    this.sy=this.got?this.sy*.8+Math.cos(rr)*.2:Math.cos(rr);
+    this.got=true;
+    this.heading=((Math.atan2(this.sx,this.sy)*180/Math.PI)+360)%360;
+    this.subs.forEach(f=>f(this.heading));
+  },
+  sub(f){this.subs.add(f);return()=>this.subs.delete(f);}
+};
+const card8=h=>['북','북동','동','남동','남','남서','서','북서'][Math.round(h/45)%8];
+const angDiff=(a,b)=>((a-b+540)%360)-180;
+function dialHTML(){return `<div class="dialwrap"><div class="pointer"></div><div class="dial" id="dial"><span class="n">N</span><span class="e">E</span><span class="s">S</span><span class="w">W</span></div></div>`;}
+function setDial(h){const d=$('#dial');if(d)d.style.transform=`rotate(${-h}deg)`;}
+
+/* ================= 촬영 안내 마법사 ================= */
+const W={step:null,unsub:null,cam:'environment',stream:null,timers:[],audio:null,aligned:false};
+const wiz=$('#wiz');
+const STEPS={canopyGuide:'1/4 수관개방도',canopyCompass:'1/4 수관개방도',canopyCount:'1/4 수관개방도',canopyResult:'1/4 수관개방도',bark:'2/4 부착수목',attach:'3/4 부착방위',veg:'4/4 주변식생'};
+function openWiz(step){wiz.classList.add('on');document.body.style.overflow='hidden';go(step||'canopyGuide');}
+function closeWiz(){cleanup();wiz.classList.remove('on','flash');document.body.style.overflow='';renderPhotos();renderExtraPhotos();}
+function cleanup(){
+  if(W.unsub){W.unsub();W.unsub=null;}
+  W.timers.forEach(t=>{clearTimeout(t);clearInterval(t);});W.timers=[];
+  if(W.stream){W.stream.getTracks().forEach(t=>t.stop());W.stream=null;}
+  wiz.classList.remove('flash');W.aligned=false;
+}
+function go(step){cleanup();W.step=step;$('#wizTitle').textContent=STEPS[step]||'';$('#wizBody').scrollTop=0;R[step]();}
+function body(h){$('#wizBody').innerHTML=h;}
+function foot(left,right){
+  const f=$('#wizFoot');f.innerHTML='<div class="l"></div><div class="r"></div>';
+  [[left,f.children[0]],[right,f.children[1]]].forEach(([arr,box])=>(arr||[]).forEach(b=>{
+    const e=document.createElement('button');e.type='button';e.className='btn'+(b.main?' main':'');e.textContent=b.t;e.onclick=b.fn;box.appendChild(e);}));
+}
+function beep(f=880,d=.12){try{if(!W.audio)W.audio=new (window.AudioContext||window.webkitAudioContext)();const a=W.audio,o=a.createOscillator(),g=a.createGain();o.frequency.value=f;g.gain.value=.25;o.connect(g);g.connect(a.destination);o.start();o.stop(a.currentTime+d);}catch(e){}}
+function vib(p){try{navigator.vibrate&&navigator.vibrate(p);}catch(e){}}
+async function ensureCompass(){return Compass.active?true:await Compass.start();}
+
+const R={
+  canopyGuide(){
+    body(`<div style="font-size:64px;margin-top:20px">📱⬆️🌳</div>
+      <div class="guide">휴대폰을 카메라 방향이 하늘로 가도록 뒤집어 주시고, 금자란이 부착된 수목의 하단의 정북(N) 방향에 놓아주세요</div>`);
+    foot([{t:'닫기',fn:closeWiz}],[{t:'확인',main:true,fn:async()=>{
+      const ok=await Compass.start();
+      if(!ok)toast('나침반 권한이 필요합니다. 허용해 주세요.');
+      go('canopyCompass');}}]);
+  },
+  canopyCompass(){
+    body(`<div class="sub2">휴대폰 윗변을 정북(N)에 맞추면 화면이 초록색으로 깜빡입니다</div>${dialHTML()}
+      <div class="readout" id="ro">--°</div><div class="sub2" id="rs"></div>
+      <div class="seg"><label><input type="radio" name="cam" value="environment" ${W.cam==='environment'?'checked':''}>후면 카메라(0.6배 시도)</label><label><input type="radio" name="cam" value="user" ${W.cam==='user'?'checked':''}>전면 카메라</label></div>
+      <div class="hint" style="color:#cfd8dc">촬영 시작을 누르면 10초 후 자동 촬영됩니다. 그 사이 휴대폰을 내려놓으세요.</div>`);
+    document.querySelectorAll('input[name=cam]').forEach(i=>i.onchange=()=>{W.cam=i.value;});
+    W.unsub=Compass.sub(compassUI);
+    if(Compass.heading!=null)compassUI(Compass.heading);else $('#rs').textContent=Compass.active?'나침반 신호 대기 중…':'나침반이 꺼져 있습니다.';
+    foot([{t:'이전',fn:()=>go('canopyGuide')}],[Compass.active?null:{t:'나침반 켜기',fn:async()=>{if(await Compass.start())go('canopyCompass');else toast('나침반 권한이 거부되었습니다');}},{t:'촬영 시작',main:true,fn:()=>{beep(660,.08);go('canopyCount');}}].filter(Boolean));
+  },
+  canopyCount(){
+    body(`<video id="cv" autoplay playsinline muted></video><div class="count" id="cnt">10</div><div class="sub2" id="cmsg">카메라 준비 중…</div>
+      <div class="sub2" id="rs"></div>`);
+    W.unsub=Compass.sub(compassUI2);
+    foot([{t:'취소',fn:()=>go('canopyCompass')}],[]);
+    const t0=performance.now();let last=11;
+    const iv=setInterval(()=>{const left=Math.max(0,Math.ceil((10000-(performance.now()-t0))/1000));
+      const c=$('#cnt');if(c)c.textContent=left;if(left!==last){last=left;if(left>0&&left<=3){beep(880,.1);vib(60);}}},100);
+    W.timers.push(iv);
+    let ready=null;
+    startCam().then(r=>{ready=r;const m=$('#cmsg');if(m)m.textContent=r?(r.note||'자동 촬영 대기 중…'):'카메라를 열 수 없습니다';}).catch(()=>{const m=$('#cmsg');if(m)m.textContent='카메라 권한이 필요합니다';});
+    W.timers.push(setTimeout(async()=>{
+      for(let i=0;i<50&&!ready;i++)await sleep(100);
+      if(!ready||W.step!=='canopyCount'){toast('촬영 실패: 카메라를 확인해 주세요');if(W.step==='canopyCount')go('canopyCompass');return;}
+      const v=$('#cv');await sleep(150);
+      const c=document.createElement('canvas');const k=Math.min(1,2200/Math.max(v.videoWidth,v.videoHeight));
+      c.width=Math.round(v.videoWidth*k);c.height=Math.round(v.videoHeight*k);
+      c.getContext('2d').drawImage(v,0,0,c.width,c.height);
+      setPhoto('canopy',c.toDataURL('image/jpeg',.9));
+      S.meta.canopy={heading:Compass.heading!=null?Math.round(Compass.heading):null,zoom:ready.zoom,cam:W.cam,note:ready.note||''};save();
+      beep(1200,.35);vib([120,60,120]);
+      go('canopyResult');
+    },10000));
+  },
+  canopyResult(){
+    const m=S.meta.canopy||{};
+    body(`<div class="guide sm">✅ 수관개방도 촬영 완료</div><img class="prev" src="${PH.canopy||''}" alt="">
+      <div class="sub2">배율 ${m.zoom!=null?m.zoom+'배':'기본'}${m.heading!=null?' · 방위 '+m.heading+'°':''}${m.note?'<br>'+esc(m.note):''}</div>`);
+    foot([{t:'다시 촬영',fn:()=>go('canopyCompass')}],[{t:'다음',main:true,fn:()=>go('bark')}]);
+  },
+  bark(){
+    body(`<div style="font-size:60px;margin-top:10px">🌳📏</div><div class="guide">금자란이 부착된 나무의 수피를 50cm 거리에서 촬영해 주세요</div>
+      ${PH.bark?`<img class="prev" src="${PH.bark}" alt="">`:''}
+      <div class="hint" style="color:#cfd8dc">휴대폰 카메라 앱이 1배 배율로 열립니다.</div>`);
+    const shoot={t:PH.bark?'다시 촬영':'촬영시작',main:!PH.bark,fn:async()=>{const p=await pickPhoto();if(p){setPhoto('bark',p);go('bark');}}};
+    foot([{t:'이전',fn:()=>go(PH.canopy?'canopyResult':'canopyGuide')}],PH.bark?[shoot,{t:'다음',main:true,fn:()=>go('attach')}]:[shoot]);
+  },
+  attach(){dirStep('attach');},
+  veg(){dirStep('veg');}
+};
+function compassUI(h){
+  setDial(h);const ro=$('#ro');if(ro)ro.textContent=`${Math.round(h)}° ${card8(h)}`;
+  const d=angDiff(h,0);const lim=W.aligned?8:5;const al=Math.abs(d)<=lim;
+  if(al!==W.aligned){W.aligned=al;wiz.classList.toggle('flash',al);if(al){vib(80);}}
+  const rs=$('#rs');if(rs)rs.textContent=al?'✅ 정북 정렬 완료':(d>0?`북쪽까지 ◀ 왼쪽으로 ${Math.round(Math.abs(d))}°`:`북쪽까지 오른쪽으로 ${Math.round(Math.abs(d))}° ▶`);
+}
+function compassUI2(h){
+  const d=angDiff(h,0);const lim=W.aligned?8:5;const al=Math.abs(d)<=lim;
+  if(al!==W.aligned){W.aligned=al;wiz.classList.toggle('flash',al);}
+  const rs=$('#rs');if(rs)rs.textContent=`방위 ${Math.round(h)}° ${card8(h)}${al?' · 정북 정렬':''}`;
+}
+async function startCam(){
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)return null;
+  const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:W.cam},width:{ideal:2560},height:{ideal:1920}},audio:false});
+  if(W.step!=='canopyCount'){s.getTracks().forEach(t=>t.stop());return null;}
+  W.stream=s;const v=$('#cv');v.srcObject=s;try{await v.play();}catch(e){}
+  const tr=s.getVideoTracks()[0];let zoom=1,note='';
+  try{
+    const caps=tr.getCapabilities?tr.getCapabilities():{};
+    if(W.cam==='environment'&&caps.zoom){
+      const z=Math.max(0.6,caps.zoom.min);
+      await tr.applyConstraints({advanced:[{zoom:z}]});zoom=z;
+      if(z>0.6)note=`이 기기는 0.6배를 지원하지 않아 최소 ${z}배로 촬영됩니다`;
+    }else{note=W.cam==='user'?'전면 카메라는 기본 배율로 촬영됩니다':'이 기기/브라우저는 배율 조절을 지원하지 않아 기본 배율로 촬영됩니다';}
+  }catch(e){note='배율 설정 실패: 기본 배율로 촬영됩니다';}
+  for(let i=0;i<30&&!(v.videoWidth>0);i++)await sleep(100);
+  return {zoom,note};
+}
+function dirStep(kind){
+  const isA=kind==='attach';
+  const keyOf=k=>(isA?'attach_':'veg_')+k;
+  body(`<div class="sub2" style="font-size:15px">${isA?'금자란이 붙어 있는 방위의 [촬영] 버튼을 눌러 주세요.<br>촬영하면 부착방위로 자동 체크됩니다.':'동·서·남·북 각 방위를 바라보고 서서 [촬영] 버튼을 눌러 주변식생을 촬영해 주세요.'}</div>
+    ${dialHTML()}<div class="readout" id="ro">--°</div><div class="sub2" id="rs"></div>
+    <div class="dcards">${DIRS.map(([k,l])=>`<div class="dc" data-k="${k}"><h4>${l}쪽 (${k})</h4>${PH[keyOf(k)]?`<img src="${PH[keyOf(k)]}" alt="">`:''}
+      <button class="btn" type="button" data-s="${k}">📷 ${l} ${PH[keyOf(k)]?'다시 촬영':'촬영'}</button>
+      ${isA?`<label><input type="checkbox" data-d="${k}" ${S.attach[k]?'checked':''}>부착방위로 체크</label>`:''}</div>`).join('')}</div>`);
+  const upd=h=>{setDial(h);$('#ro').textContent=`${Math.round(h)}° ${card8(h)}`;
+    DIRS.forEach(([k,,a])=>{const el=document.querySelector(`.dc[data-k=${k}]`);if(el)el.classList.toggle('now',Math.abs(angDiff(h,a))<=45);});
+    $('#rs').textContent='현재 바라보는 방위: '+card8(h)+'쪽';};
+  W.unsub=Compass.sub(upd);
+  if(Compass.heading!=null)upd(Compass.heading);else $('#rs').textContent=Compass.active?'나침반 신호 대기 중…':'나침반이 꺼져 있습니다. 아래 [나침반 켜기]를 눌러 주세요.';
+  if(!Compass.active)Compass.start().then(ok=>{if(ok&&W.step===kind)go(kind);});
+  document.querySelectorAll('.dc button').forEach(b=>b.onclick=async()=>{
+    const k=b.dataset.s,a=DIRS.find(d=>d[0]===k)[2],h=Compass.heading;
+    if(h!=null&&Math.abs(angDiff(h,a))>45&&!confirm(`현재 휴대폰은 ${card8(h)}쪽(${Math.round(h)}°)을 향하고 있습니다.\n${DIRNAME[k]}쪽이 맞습니까?`))return;
+    const p=await pickPhoto();if(!p)return;
+    setPhoto(keyOf(k),p);S.meta[keyOf(k)]={heading:h!=null?Math.round(h):null};
+    if(isA)S.attach[k]=true;save();go(kind);
+  });
+  document.querySelectorAll('.dc input[type=checkbox]').forEach(i=>i.onchange=()=>{S.attach[i.dataset.d]=i.checked;save();});
+  foot([{t:'이전',fn:()=>go(isA?'bark':'attach')}],[
+    Compass.active?null:{t:'나침반 켜기',fn:async()=>{if(await Compass.start())go(kind);else toast('나침반 권한이 거부되었습니다');}},
+    isA?{t:'다음',main:true,fn:()=>go('veg')}:{t:'완료',main:true,fn:closeWiz}].filter(Boolean));
+}
+
+/* ================= PDF ================= */
+const cb=c=>c?'☑':'□';
+const imgOr=k=>PH[k]?`<img src="${PH[k]}" alt="">`:'<span class="ph">(사진)</span>';
+function opts(list,sel,multi){return list.map(v=>`${cb(multi?sel.includes(v):sel===v)} ${esc(v)}`).join('&nbsp;&nbsp;');}
+function buildSheet(){
+  const m=S.meta.canopy||{};
+  const vdef=VIGOR.map(([v,d])=>`- ${v}: ${d}`).join('<br>');
+  const fdef=['개화전기: 꽃눈만 보이는 상태','개화초기: 신장형의 순판이 완전히 벌어지지 않았지만 어느 정도 꽃의 각 부위가 윤곽을 드러낸 상태','개화중기: 신장형의 순판이 완전히 벌어져 있는 상태','개화후기: 꽃이 노화하여 갈라지거나 색이 변한 상태'].map(x=>'- '+x).join('<br>');
+  const minor=`수간부&nbsp; ${opts(MINOR['수간부'],S.locMajor==='수간부'?S.locMinor:'')}<br>가지&nbsp;&nbsp;&nbsp; ${opts(MINOR['가지'],S.locMajor==='가지'?S.locMinor:'')}`;
+  const attPhotos=DIRS.filter(([k])=>PH['attach_'+k]).map(([k,l])=>`<div class="vp">${imgOr('attach_'+k)}${l}</div>`).join('');
+  const veg=DIRS.map(([k,l])=>`<div class="vp">${imgOr('veg_'+k)}${l}</div>`).join('');
+  $('#sheet').innerHTML=`<table>
+  <tr><td class="t" colspan="6">멸종위기 야생생물 금자란 조사 야장</td></tr>
+  <tr><td class="sec" colspan="6">1. 기본정보</td></tr>
+  <tr><td class="l">관찰자 성명</td><td>${esc($('#obs').value)}</td><td class="l">관찰일자</td><td>${esc((S.date||'').replace(/-/g,'. '))}</td><td class="l">관찰시각</td><td>${esc(S.time)}</td></tr>
+  <tr><td class="l">나무 번호</td><td colspan="5">${esc(S.treeNo)}</td></tr>
+  <tr><td class="l">관찰장소<br>(행정지명)</td><td colspan="5">${esc(S.addr)}</td></tr>
+  <tr><td class="l">관찰장소<br>(지리좌표)</td><td colspan="5">${esc(dmsText())}${S.lat?`<br><span class="d">십진도: ${esc(S.lat)}, ${esc(S.lng)}${S.acc?` (정확도 약 ${esc(S.acc)}m)`:''}</span>`:''}</td></tr>
+  <tr><td class="sec" colspan="6">2. 환경정보</td></tr>
+  <tr><td class="l">기온</td><td>${esc(S.temp)}${S.temp?' ℃':''}</td><td class="l">습도</td><td>${esc(S.hum)}${S.hum?' %':''}</td><td class="l">수관개방도</td><td>${imgOr('canopy')}${m.heading!=null?`<div class="d" style="text-align:center">방위 ${m.heading}° · ${m.zoom}배</div>`:''}</td></tr>
+  <tr><td class="l">부착수목<br>(수피 사진)</td><td colspan="2">${imgOr('bark')}</td><td class="l">부착방위</td><td colspan="2">${DIRS.map(([k,l])=>`${cb(S.attach[k])} ${l}`).join('&nbsp;&nbsp;')}</td></tr>
+  ${attPhotos?`<tr><td class="l">부착방위<br>촬영사진</td><td colspan="5">${attPhotos}</td></tr>`:''}
+  <tr><td class="l">주변식생<br>(사진)</td><td colspan="5">${veg}</td></tr>
+  <tr><td class="sec" colspan="6">3. 생육정보</td></tr>
+  <tr><td class="l">생육건전도</td><td colspan="5">${opts(VIGOR.map(x=>x[0]),S.vigor)}<div class="d" style="margin-top:4px"><b>생육건전도 정의</b><br>${vdef}</div></td></tr>
+  <tr><td class="l">부착위치<br>(대분류)</td><td colspan="5">${opts(['수간부','가지'],S.locMajor)}</td></tr>
+  <tr><td class="l">부착위치<br>(중분류)</td><td colspan="5">${minor}</td></tr>
+  <tr><td class="sec" colspan="6">4. 번식정보</td></tr>
+  <tr><td class="l">개화상태<br>(flowering)</td><td colspan="5">${opts(FLOWER.map(x=>x[0]),S.flower)}<div class="d" style="margin-top:4px"><b>※ 개화상태 정의</b><br>${fdef}</div></td></tr>
+  <tr><td class="l">착과상태<br>(fruiting)</td><td colspan="5">${opts(['유','무'],S.fruit)}</td></tr>
+  <tr><td class="l">수분매개자</td><td colspan="3">${opts(['벌류','파리류','나비류'],S.poll,true)}</td><td class="l">첨부사진</td><td>${imgOr('poll')}</td></tr>
+  <tr><td class="l">종자산포자</td><td colspan="3">${opts(['조류','포유류','곤충류'],S.disp,true)}</td><td class="l">첨부사진</td><td>${imgOr('disp')}</td></tr>
+  <tr><td class="sec" colspan="6">5. 반응정보</td></tr>
+  <tr><td class="l">대상 종<br>인식 수준</td><td colspan="5">${opts(AWARE.map(x=>x[0]),S.aware)}</td></tr>
+  <tr><td class="l">관찰소감<br>또는<br>특이관찰 사항</td><td colspan="5" style="white-space:pre-wrap;min-height:70px;height:70px;vertical-align:top">${esc(S.notes)}</td></tr>
+  </table>`;
+}
+const loaded={};
+function loadScript(src){
+  if(loaded[src])return loaded[src];
+  return loaded[src]=new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=()=>{delete loaded[src];rej(new Error('load '+src));};document.head.appendChild(s);});
+}
+const H2C='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+const JSPDF='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+async function savePdf(){
+  $('#busy').classList.add('on');
+  try{
+    buildSheet();
+    await Promise.all([loadScript(H2C),loadScript(JSPDF)]);
+    const imgs=[...document.querySelectorAll('#sheet img')];
+    await Promise.all(imgs.map(i=>i.complete?1:new Promise(r=>{i.onload=i.onerror=r;})));
+    const sheet=$('#sheet'),scale=2;
+    const canvas=await html2canvas(sheet,{scale,backgroundColor:'#fff',useCORS:true,logging:false});
+    const top=sheet.getBoundingClientRect().top;
+    const bottoms=[...sheet.querySelectorAll('tr')].map(r=>r.getBoundingClientRect().bottom-top);
+    const PW=794,PHt=1123,MX=40,MY=30,usable=PHt-MY*2,total=sheet.scrollHeight;
+    const pages=[];let start=0;
+    while(total-start>usable){
+      const limit=start+usable;
+      const cand=bottoms.filter(b=>b<=limit&&b>start+usable*.4);
+      const end=cand.length?Math.max(...cand):limit;
+      pages.push([start,end]);start=end;
+    }
+    pages.push([start,total]);
+    const {jsPDF}=window.jspdf;const pdf=new jsPDF({unit:'mm',format:'a4',compress:true});
+    pages.forEach(([a,b],i)=>{
+      const pc=document.createElement('canvas');pc.width=PW*scale;pc.height=PHt*scale;
+      const cx=pc.getContext('2d');cx.fillStyle='#fff';cx.fillRect(0,0,pc.width,pc.height);
+      cx.drawImage(canvas,0,a*scale,canvas.width,Math.min((b-a)*scale,canvas.height-a*scale),MX*scale,MY*scale,canvas.width,Math.min((b-a)*scale,canvas.height-a*scale));
+      if(i>0)pdf.addPage();
+      pdf.addImage(pc.toDataURL('image/jpeg',.92),'JPEG',0,0,210,297);
+    });
+    const name=`금자란야장_${(S.treeNo||'나무번호없음').replace(/[\\/:*?"<>|]/g,'_')}_${S.date||new Date().toISOString().slice(0,10)}.pdf`;
+    pdf.save(name);
+    toast('PDF가 저장되었습니다 (다운로드 폴더 확인)');
+  }catch(e){
+    console.error(e);
+    if(confirm('PDF 생성에 실패했습니다 (최초 1회 인터넷 연결이 필요합니다).\n인쇄 화면에서 "PDF로 저장"을 선택하시겠습니까?')){buildSheet();setTimeout(()=>window.print(),200);}
+  }finally{$('#busy').classList.remove('on');}
+}
+
+/* ================= 설치(PWA) ================= */
+let deferredPrompt=null;
+const isStandalone=()=>window.matchMedia('(display-mode: standalone)').matches||navigator.standalone;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;});
+window.addEventListener('appinstalled',()=>{$('#installBtn').style.display='none';toast('설치되었습니다. 홈 화면에서 실행하세요.');});
+$('#installBtn').onclick=async()=>{
+  if(deferredPrompt){deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;return;}
+  alert('설치 방법\n\n· 크롬(안드로이드): 우측 상단 ⋮ 메뉴 → "앱 설치" 또는 "홈 화면에 추가"\n· iPhone(Safari): 공유 버튼 → "홈 화면에 추가"\n\n이미 설치되어 있다면 홈 화면의 아이콘으로 실행해 주세요.');
+};
+if(isStandalone())$('#installBtn').style.display='none';
+if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+
+/* ================= 초기화 ================= */
+$('#obs').value=localStorage.getItem(OBS_KEY)||'';
+$('#obs').addEventListener('input',e=>{try{localStorage.setItem(OBS_KEY,e.target.value);}catch(_){}});
+document.querySelectorAll('[data-k]').forEach(i=>i.addEventListener('input',()=>{
+  S[i.dataset.k]=i.value;save();
+  if(i.id==='lat'||i.id==='lng'){updateDms();showOnMap(parseFloat(S.lat),parseFloat(S.lng),NaN);}
+}));
+$('#gpsBtn').onclick=autoFill;
+$('#wizBtn').onclick=()=>openWiz('canopyGuide');
+$('#wizClose').onclick=closeWiz;
+$('#pdfBtn').onclick=savePdf;
+$('#newBtn').onclick=async()=>{
+  if(!confirm('현재 작성 중인 야장(사진 포함)을 지우고 새로 시작할까요?\n관찰자 성명은 유지됩니다.\n(필요하면 먼저 PDF로 저장하세요)'))return;
+  S=defaultState();PH={};save();await idbClear();
+  if(marker){map.removeLayer(marker);marker=null;}if(circle){map.removeLayer(circle);circle=null;}
+  $('#gpsStatus').textContent='';renderChoices();renderPhotos();applyInputs();window.scrollTo(0,0);toast('새 야장을 시작합니다');
+};
+window.addEventListener('load',()=>{
+  initMap();
+  setTimeout(()=>{loadScript(H2C).catch(()=>{});loadScript(JSPDF).catch(()=>{});},4000); // PDF 라이브러리 미리 캐시
+});
+(async()=>{
+  loadDraft();PH=await idbAll();
+  renderChoices();renderPhotos();applyInputs();
+  if(map&&S.lat&&S.lng)showOnMap(parseFloat(S.lat),parseFloat(S.lng),parseFloat(S.acc));
+})();
+</script>
+</body>
+</html>
