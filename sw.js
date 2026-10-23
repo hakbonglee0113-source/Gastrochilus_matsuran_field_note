@@ -1,8 +1,8 @@
 // 금자란 조사야장 서비스워커
 // - 앱 본체는 오프라인에서도 열림 (네트워크 우선, 실패 시 캐시)
 // - 지도/PDF 라이브러리(unpkg, cdnjs)는 최초 1회 받은 뒤 캐시
-const VER = 'gjr-v3';
-const SHELL = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png', './icons/icon-maskable-512.png'];
+const VER = 'gjr-v4';
+const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-maskable-512.png'];
 const LIBS = ['unpkg.com', 'cdnjs.cloudflare.com'];
 
 self.addEventListener('install', e => {
