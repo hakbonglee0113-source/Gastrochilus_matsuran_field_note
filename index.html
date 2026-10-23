@@ -81,6 +81,13 @@ label.opt:has(input:checked){border-color:var(--g);background:var(--gl)}
 .c2{border-color:#f9a825;color:#7a5b00}.c2.on{background:#f9a825;color:#000}
 .c3{border-color:#e65100;color:#bf360c}.c3.on{background:#e65100;color:#fff}
 .c4{border-color:#4e342e;color:#4e342e}.c4.on{background:#4e342e;color:#fff}
+
+.btabs{display:flex;gap:6px;margin:6px 0 4px}
+.btab{flex:1;padding:8px 4px;border:2px solid var(--g);border-radius:10px;background:#fff;color:var(--g);line-height:1.25}
+.btab b{font-size:15px}
+.btab small{display:block;font-size:11px;opacity:.85}
+.btab i{display:block;font-style:normal;font-size:12px;font-weight:800;margin-top:2px}
+.btab.on{background:var(--g);color:#fff}
 details{margin:6px 0 10px;background:#fff;border:1.5px solid var(--bd);border-radius:10px;padding:8px 12px}
 details summary{font-weight:700;color:var(--g2)}
 details p{margin:6px 0;font-size:13px;line-height:1.45}
@@ -154,7 +161,7 @@ video{width:100%;max-height:44vh;background:#000;border-radius:12px;object-fit:c
 #sheet .vp{display:inline-block;width:24%;vertical-align:top;text-align:center;font-size:11px}
 #sheet .vp img{max-height:130px}
 #sheet .ph{color:#999}
-#busy{position:fixed;inset:0;background:#0009;color:#fff;z-index:200;display:none;align-items:center;justify-content:center;font-size:18px}
+#busy{position:fixed;inset:0;background:#0009;color:#fff;z-index:200;display:none;align-items:center;justify-content:center;font-size:18px;white-space:pre-line;text-align:center;line-height:1.7}
 #busy.on{display:flex}
 #toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);background:#263238;color:#fff;padding:10px 16px;border-radius:20px;font-size:14px;z-index:300;display:none;max-width:90%;text-align:center}
 @media print{body>*:not(#sheet){display:none!important}#sheet{position:static;width:auto}}
@@ -211,7 +218,7 @@ video{width:100%;max-height:44vh;background:#000;border-radius:12px;object-fit:c
   <section id="s3">
     <h2>3. 생육정보</h2>
     <div class="sub" style="margin-top:0">생육건전도 (가지 방향별 · 부착 위치별 금자란 개체)</div>
-    <div class="hint">동·서·남·북으로 뻗은 각 가지의 위/아래/좌/우에 부착한 금자란을 판정해 주세요. 해당 개체가 없으면 선택하지 않고, 잘못 눌렀으면 같은 버튼을 다시 누르면 해제됩니다.</div>
+    <div class="hint">동·서·남·북으로 뻗은 각 가지마다 <b>수간과 가까운 가지</b>와 <b>수간에서 먼 가지</b> 두 세트가 있습니다. 위쪽 탭으로 세트를 고른 뒤 위/아래/좌/우에 부착한 금자란을 판정해 주세요. 해당 개체가 없으면 선택하지 않고, 잘못 눌렀으면 같은 버튼을 다시 누르면 해제됩니다.</div>
     <details>
       <summary>생육건전도 판정 기준 보기</summary>
       <p><b>매우좋음</b>: 살아있으며 뿌리색은 흰색 또는 녹색이고 신생 뿌리가 발생했으며 잎은 녹색인 상태</p>
@@ -290,6 +297,7 @@ const $ = s => document.querySelector(s);
 const DIRS = [['N','북',0],['E','동',90],['S','남',180],['W','서',270]];
 const DIRNAME = {N:'북',E:'동',S:'남',W:'서'};
 const POS = [['up','위'],['down','아래'],['left','좌'],['right','우']];
+const BR = [['near','가까운 가지','수간과 가까운'],['far','먼쪽 가지','수간에서 먼']];
 const VG = ['매우좋음','좋음','보통','나쁨','고사'];
 const pad = n => String(n).padStart(2,'0');
 const esc = s => String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -300,13 +308,13 @@ function busy(on,msg){$('#busy').textContent=msg||'처리 중…';$('#busy').cla
 
 /* ================= 상태 ================= */
 const OBS_KEY='gjr_observer_v1', CUR_KEY='gjr_current_v2';
-function emptyVig(){const o={};DIRS.forEach(([k])=>{o[k]={up:'',down:'',left:'',right:''};});return o;}
+function emptyVig(){const o={};DIRS.forEach(([k])=>{o[k]={};BR.forEach(([b])=>{o[k][b]={up:'',down:'',left:'',right:''};});});return o;}
 function defaultState(){return {observer:'',treeNo:'',date:'',time:'',addr:'',lat:'',lng:'',acc:'',temp:'',hum:'',
   vig:emptyVig(),flower:'',fruit:'',
   poll:[],disp:[],aware:'',notes:'',meta:{}};}
 function mergeState(s){
   const d=defaultState();const o=Object.assign(d,s||{});
-  const v=emptyVig();DIRS.forEach(([k])=>{POS.forEach(([p])=>{v[k][p]=((s&&s.vig&&s.vig[k]&&s.vig[k][p])||'');});});
+  const v=emptyVig();DIRS.forEach(([k])=>{const sv=(s&&s.vig&&s.vig[k])||{};BR.forEach(([b])=>{POS.forEach(([p])=>{let val='';if(sv[b]&&typeof sv[b]==='object')val=sv[b][p]||'';else if(b==='near'&&typeof sv[p]==='string')val=sv[p];v[k][b][p]=val;});});});
   delete o.locMajor;delete o.locMinor;
   o.vig=v;if(!Array.isArray(o.poll))o.poll=[];if(!Array.isArray(o.disp))o.disp=[];if(!o.meta)o.meta={};
   return o;
@@ -467,14 +475,24 @@ function checks(id,items,key){
   el.innerHTML=items.map(([v])=>`<label class="opt"><input type="checkbox" value="${esc(v)}"><span><b>${esc(v)}</b></span></label>`).join('');
   el.querySelectorAll('input').forEach(i=>{i.checked=S[key].includes(i.value);i.onchange=()=>{S[key]=[...el.querySelectorAll('input:checked')].map(x=>x.value);save();};});
 }
+const VTAB={N:'near',E:'near',S:'near',W:'near'};
+const vcount=(k,b)=>POS.filter(([p])=>S.vig[k][b][p]).length;
 function renderVig(){
   const el=$('#vig');
-  el.innerHTML=DIRS.map(([k,l])=>`<div class="vcard"><h4>🧭 ${l}쪽(${k}) 가지</h4>${POS.map(([p,pl])=>`<div class="vrow"><span class="vl">${pl}</span><div class="chips" data-d="${k}" data-p="${p}">${VG.map((v,i)=>`<button type="button" class="chip c${i}${S.vig[k][p]===v?' on':''}" data-v="${v}">${v}</button>`).join('')}</div></div>`).join('')}</div>`).join('');
+  el.innerHTML=DIRS.map(([k,l])=>{
+    const cur=VTAB[k];const curName=BR.find(x=>x[0]===cur)[1];
+    return `<div class="vcard" data-d="${k}"><h4>🧭 ${l}쪽(${k}) 가지</h4>
+    <div class="btabs">${BR.map(([bk,bl,bd])=>`<button type="button" class="btab${cur===bk?' on':''}" data-b="${bk}"><b>${bl}</b><small>${bd}</small><i data-c="${bk}">${vcount(k,bk)}/4 입력</i></button>`).join('')}</div>
+    <div class="hint" style="margin:2px 0 2px">▼ 지금 입력 중: <b>${curName}</b></div>
+    ${POS.map(([p,pl])=>`<div class="vrow"><span class="vl">${pl}</span><div class="chips" data-d="${k}" data-b="${cur}" data-p="${p}">${VG.map((v,i)=>`<button type="button" class="chip c${i}${S.vig[k][cur][p]===v?' on':''}" data-v="${v}">${v}</button>`).join('')}</div></div>`).join('')}</div>`;
+  }).join('');
+  el.querySelectorAll('.btab').forEach(b=>b.onclick=()=>{VTAB[b.closest('.vcard').dataset.d]=b.dataset.b;renderVig();});
   el.querySelectorAll('.chips').forEach(box=>{
     box.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{
-      const k=box.dataset.d,p=box.dataset.p,v=b.dataset.v;
-      S.vig[k][p]=(S.vig[k][p]===v)?'':v;
-      box.querySelectorAll('.chip').forEach(x=>x.classList.toggle('on',x.dataset.v===S.vig[k][p]));
+      const k=box.dataset.d,br=box.dataset.b,p=box.dataset.p,v=b.dataset.v;
+      S.vig[k][br][p]=(S.vig[k][br][p]===v)?'':v;
+      box.querySelectorAll('.chip').forEach(x=>x.classList.toggle('on',x.dataset.v===S.vig[k][br][p]));
+      const c=el.querySelector(`.vcard[data-d=${k}] i[data-c=${br}]`);if(c)c.textContent=`${vcount(k,br)}/4 입력`;
       save();
     });
   });
@@ -697,7 +715,7 @@ function buildSheet(s,ph){
   const fdef=['개화전기: 꽃눈만 보이는 상태','개화초기: 신장형의 순판이 완전히 벌어지지 않았지만 어느 정도 꽃의 각 부위가 윤곽을 드러낸 상태','개화중기: 신장형의 순판이 완전히 벌어져 있는 상태','개화후기: 꽃이 노화하여 갈라지거나 색이 변한 상태'].map(x=>'- '+x).join('<br>');
   const attPhotos=DIRS.filter(([k])=>ph['attach_'+k]).map(([k,l])=>`<div class="vp">${imgOr('attach_'+k)}${l}</div>`).join('');
   const veg=DIRS.map(([k,l])=>`<div class="vp">${imgOr('veg_'+k)}${l}</div>`).join('');
-  const vrows=DIRS.map(([k,l])=>`<tr><td class="l">${l}쪽 가지</td>${POS.map(([p])=>`<td style="text-align:center;font-weight:700">${esc(s.vig[k][p]||'-')}</td>`).join('')}</tr>`).join('');
+  const vrows=DIRS.map(([k,l])=>BR.map(([b,bl])=>`<tr><td class="l">${l}쪽 · ${bl}</td>${POS.map(([p])=>`<td style="text-align:center;font-weight:700">${esc(s.vig[k][b][p]||'-')}</td>`).join('')}</tr>`).join('')).join('');
   $('#sheet').innerHTML=`<table>
   <tr><td class="t" colspan="6">멸종위기 야생생물 금자란 조사 야장</td></tr>
   <tr><td class="sec" colspan="6">1. 기본정보</td></tr>
@@ -711,7 +729,7 @@ function buildSheet(s,ph){
   ${attPhotos?`<tr><td class="l">부착방위<br>촬영사진</td><td colspan="5">${attPhotos}</td></tr>`:''}
   <tr><td class="l">주변식생<br>(사진)</td><td colspan="5">${veg}</td></tr>
   <tr><td class="sec" colspan="6">3. 생육정보</td></tr>
-  <tr><td class="l" rowspan="5">생육건전도<br><span class="d">(가지 방향별<br>부착 개체)</span></td><td class="l">방향</td>${POS.map(([,pl])=>`<td class="l">${pl}</td>`).join('')}</tr>
+  <tr><td class="l" rowspan="9">생육건전도<br><span class="d">(가지 방향별<br>가까운·먼쪽<br>부착 개체)</span></td><td class="l">방향 · 구분</td>${POS.map(([,pl])=>`<td class="l">${pl}</td>`).join('')}</tr>
   ${vrows}
   <tr><td colspan="6"><div class="d"><b>생육건전도 정의</b><br>${vdef}</div></td></tr>
   <tr><td class="sec" colspan="6">4. 번식정보</td></tr>
@@ -732,38 +750,42 @@ function loadScript(src){
 }
 const H2C='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
 const JSPDF='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+async function makePdf(s,ph){
+  buildSheet(s,ph);
+  await Promise.all([loadScript(H2C),loadScript(JSPDF)]);
+  const imgs=[...document.querySelectorAll('#sheet img')];
+  await Promise.all(imgs.map(i=>i.complete?1:new Promise(r=>{i.onload=i.onerror=r;})));
+  const sheet=$('#sheet'),scale=2;
+  const canvas=await html2canvas(sheet,{scale,backgroundColor:'#fff',useCORS:true,logging:false});
+  const top=sheet.getBoundingClientRect().top;
+  const bottoms=[...sheet.querySelectorAll(':scope>table>tbody>tr')].map(r=>r.getBoundingClientRect().bottom-top);
+  const PW=794,PHt=1123,MX=40,MY=30,usable=PHt-MY*2,total=sheet.scrollHeight;
+  const pages=[];let start=0;
+  while(total-start>usable){
+    const limit=start+usable;
+    const cand=bottoms.filter(b=>b<=limit&&b>start+usable*.4);
+    const end=cand.length?Math.max(...cand):limit;
+    pages.push([start,end]);start=end;
+  }
+  pages.push([start,total]);
+  const {jsPDF}=window.jspdf;const pdf=new jsPDF({unit:'mm',format:'a4',compress:true});
+  pages.forEach(([a,b],i)=>{
+    const pc=document.createElement('canvas');pc.width=PW*scale;pc.height=PHt*scale;
+    const cx=pc.getContext('2d');cx.fillStyle='#fff';cx.fillRect(0,0,pc.width,pc.height);
+    const hh=Math.min((b-a)*scale,canvas.height-a*scale);
+    cx.drawImage(canvas,0,a*scale,canvas.width,hh,MX*scale,MY*scale,canvas.width,hh);
+    if(i>0)pdf.addPage();
+    pdf.addImage(pc.toDataURL('image/jpeg',.92),'JPEG',0,0,210,297);
+  });
+  return pdf;
+}
+const pdfName=s=>`금자란야장_${(s.treeNo||'나무번호없음').replace(/[\\/:*?"<>|]/g,'_')}_${s.date||new Date().toISOString().slice(0,10)}.pdf`;
 async function savePdf(rec){
   busy(true,'PDF 생성 중…');
   const s=rec?rec.S:S, ph=rec?rec.PH:PH;
   try{
-    buildSheet(s,ph);
-    await Promise.all([loadScript(H2C),loadScript(JSPDF)]);
-    const imgs=[...document.querySelectorAll('#sheet img')];
-    await Promise.all(imgs.map(i=>i.complete?1:new Promise(r=>{i.onload=i.onerror=r;})));
-    const sheet=$('#sheet'),scale=2;
-    const canvas=await html2canvas(sheet,{scale,backgroundColor:'#fff',useCORS:true,logging:false});
-    const top=sheet.getBoundingClientRect().top;
-    const bottoms=[...sheet.querySelectorAll(':scope>table>tbody>tr')].map(r=>r.getBoundingClientRect().bottom-top);
-    const PW=794,PHt=1123,MX=40,MY=30,usable=PHt-MY*2,total=sheet.scrollHeight;
-    const pages=[];let start=0;
-    while(total-start>usable){
-      const limit=start+usable;
-      const cand=bottoms.filter(b=>b<=limit&&b>start+usable*.4);
-      const end=cand.length?Math.max(...cand):limit;
-      pages.push([start,end]);start=end;
-    }
-    pages.push([start,total]);
-    const {jsPDF}=window.jspdf;const pdf=new jsPDF({unit:'mm',format:'a4',compress:true});
-    pages.forEach(([a,b],i)=>{
-      const pc=document.createElement('canvas');pc.width=PW*scale;pc.height=PHt*scale;
-      const cx=pc.getContext('2d');cx.fillStyle='#fff';cx.fillRect(0,0,pc.width,pc.height);
-      const hh=Math.min((b-a)*scale,canvas.height-a*scale);
-      cx.drawImage(canvas,0,a*scale,canvas.width,hh,MX*scale,MY*scale,canvas.width,hh);
-      if(i>0)pdf.addPage();
-      pdf.addImage(pc.toDataURL('image/jpeg',.92),'JPEG',0,0,210,297);
-    });
-    const name=`금자란야장_${(s.treeNo||'나무번호없음').replace(/[\\/:*?"<>|]/g,'_')}_${s.date||new Date().toISOString().slice(0,10)}.pdf`;
-    pdf.save(name);
+    const pdf=await makePdf(s,ph);
+    pdf.save(pdfName(s));
     toast('PDF가 저장되었습니다 (다운로드 폴더 확인)');
   }catch(e){
     console.error(e);
